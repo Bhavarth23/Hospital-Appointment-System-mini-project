@@ -1,5 +1,7 @@
 import axios from "axios";
 
+export type ApiPayload = Record<string, unknown>;
+
 // Changed localhost to 127.0.0.1 for better stability in Node environments
 const API = axios.create({ baseURL: "http://127.0.0.1:5000/api" });
 
@@ -13,14 +15,17 @@ API.interceptors.request.use((req) => {
 });
 
 // Auth Endpoints
-export const registerUser = (userData) => API.post("/auth/register", userData);
-export const loginUser = (userData) => API.post("/auth/login", userData);
+export const registerUser = (userData: ApiPayload) =>
+  API.post("/auth/register", userData);
+export const loginUser = (userData: ApiPayload) =>
+  API.post("/auth/login", userData);
 export const getUsers = () => API.get("/auth/users");
 
 // Appointment Endpoints
-export const bookAppointment = (data) => API.post("/appointments/book", data);
+export const bookAppointment = (data: ApiPayload) =>
+  API.post("/appointments/book", data);
 export const getAppointments = () => API.get("/appointments");
-export const cancelAppointment = (id) =>
+export const cancelAppointment = (id: string) =>
   API.delete(`/appointments/cancel/${id}`);
 
 export default API;

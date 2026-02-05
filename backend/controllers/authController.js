@@ -5,16 +5,23 @@ const jwt = require("jsonwebtoken");
 exports.register = async (req, res) => {
   try {
     const { name, email, password, role, specialization } = req.body; // Ensure specialization is here
+    const normalizedRole =
+      typeof role === "string" && role.trim() !== ""
+        ? role.trim().toLowerCase()
+        : "patient";
+    const normalizedEmail =
+      typeof email === "string" ? email.trim().toLowerCase() : email;
 
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
 
     const user = await User.create({
       name,
-      email,
+      email: normalizedEmail,
       password: hashedPassword,
-      role,
-      specialization: role === "doctor" ? specialization : undefined, // Logic to handle doctor field
+      role: normalizedRole,
+      specialization:
+        normalizedRole === "doctor" ? specialization : undefined, // Logic to handle doctor field
     });
 
     res.status(201).json({ success: true, data: user });
@@ -28,7 +35,11 @@ exports.register = async (req, res) => {
 exports.login = async (req, res) => {
   try {
     const { email, password } = req.body;
-    const user = await User.findOne({ email }).select("+password");
+    const normalizedEmail =
+      typeof email === "string" ? email.trim().toLowerCase() : email;
+    const user = await User.findOne({ email: normalizedEmail }).select(
+      "+password",
+    );
 
     if (!user || !(await bcrypt.compare(password, user.password))) {
       return res.status(401).json({ message: "Invalid credentials" });
