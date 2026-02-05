@@ -31,6 +31,31 @@ const UserSchema = new mongoose.Schema({
       return this.role === "doctor";
     },
   },
+  availability: {
+    weeklyHours: {
+      type: [
+        {
+          day: String,
+          start: String,
+          end: String,
+          enabled: Boolean,
+        },
+      ],
+      default: [
+        { day: "Mon", start: "09:00", end: "17:00", enabled: true },
+        { day: "Tue", start: "09:00", end: "17:00", enabled: true },
+        { day: "Wed", start: "09:00", end: "17:00", enabled: true },
+        { day: "Thu", start: "09:00", end: "17:00", enabled: true },
+        { day: "Fri", start: "09:00", end: "17:00", enabled: true },
+        { day: "Sat", start: "09:00", end: "13:00", enabled: false },
+        { day: "Sun", start: "09:00", end: "13:00", enabled: false },
+      ],
+    },
+    blockedDates: {
+      type: [Date],
+      default: [],
+    },
+  },
   createdAt: {
     type: Date,
     default: Date.now,

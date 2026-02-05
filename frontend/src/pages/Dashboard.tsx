@@ -4,6 +4,9 @@ import {
   bookAppointment,
   getAppointments,
   cancelAppointment,
+  rescheduleAppointment,
+  getDoctorAvailability,
+  updateDoctorAvailability,
 } from "../services/api";
 
 type ToastType = "success" | "error";
@@ -27,15 +30,35 @@ type Appointment = {
   doctor?: { name?: string; specialization?: string };
 };
 
+type WeeklyHour = {
+  day: string;
+  start: string;
+  end: string;
+  enabled: boolean;
+};
+
+type Availability = {
+  weeklyHours: WeeklyHour[];
+  blockedDates: string[];
+};
+
 const Dashboard = ({ showToast }: DashboardProps) => {
   const [doctors, setDoctors] = useState<Doctor[]>([]);
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [availability, setAvailability] = useState<Availability>({
+    weeklyHours: [],
+    blockedDates: [],
+  });
+  const [newBlockedDate, setNewBlockedDate] = useState("");
   const role = (localStorage.getItem("role") || "").toLowerCase();
   const userId = localStorage.getItem("userId") || "";
 
   useEffect(() => {
     fetchData();
+    if (role === "doctor" && userId) {
+      fetchAvailability();
+    }
   }, []);
 
   const fetchData = async () => {
@@ -55,6 +78,21 @@ const Dashboard = ({ showToast }: DashboardProps) => {
       showToast("Failed to fetch dashboard data", "error");
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const fetchAvailability = async () => {
+    try {
+      const res = await getDoctorAvailability(userId);
+      const data = res.data.data;
+      setAvailability({
+        weeklyHours: data?.weeklyHours || [],
+        blockedDates: (data?.blockedDates || []).map((d: string) =>
+          d.slice(0, 10),
+        ),
+      });
+    } catch (err) {
+      showToast("Failed to load availability", "error");
     }
   };
 
@@ -84,6 +122,58 @@ const Dashboard = ({ showToast }: DashboardProps) => {
       } catch (err) {
         showToast("Cancellation failed", "error");
       }
+    }
+  };
+
+  const handleReschedule = async (id: string) => {
+    const date = prompt("Enter New Appointment Date (YYYY-MM-DD):");
+    if (!date) return;
+
+    try {
+      await rescheduleAppointment(id, { appointmentDate: date });
+      showToast("Appointment rescheduled", "success");
+      fetchData();
+    } catch (err: any) {
+      showToast(err.response?.data?.message || "Reschedule failed", "error");
+    }
+  };
+
+  const handleWeeklyChange = (
+    index: number,
+    key: keyof WeeklyHour,
+    value: string | boolean,
+  ) => {
+    setAvailability((prev) => {
+      const updated = [...prev.weeklyHours];
+      updated[index] = { ...updated[index], [key]: value } as WeeklyHour;
+      return { ...prev, weeklyHours: updated };
+    });
+  };
+
+  const handleAddBlockedDate = () => {
+    if (!newBlockedDate) return;
+    setAvailability((prev) => ({
+      ...prev,
+      blockedDates: Array.from(
+        new Set([...prev.blockedDates, newBlockedDate]),
+      ).sort(),
+    }));
+    setNewBlockedDate("");
+  };
+
+  const handleRemoveBlockedDate = (date: string) => {
+    setAvailability((prev) => ({
+      ...prev,
+      blockedDates: prev.blockedDates.filter((d) => d !== date),
+    }));
+  };
+
+  const handleSaveAvailability = async () => {
+    try {
+      await updateDoctorAvailability(userId, availability);
+      showToast("Availability updated", "success");
+    } catch (err: any) {
+      showToast(err.response?.data?.message || "Update failed", "error");
     }
   };
 
@@ -219,6 +309,9 @@ const Dashboard = ({ showToast }: DashboardProps) => {
                       <p className="mt-1 text-[10px] font-semibold uppercase tracking-[0.28em] text-slate-400">
                         {doc.specialization || "General Medicine"}
                       </p>
+                      <p className="mt-3 text-[10px] font-semibold uppercase tracking-[0.28em] text-slate-500">
+                        Availability on profile
+                      </p>
                       <button
                         onClick={() => handleBook(doc._id)}
                         className="mt-7 w-full rounded-2xl bg-slate-900 py-3 text-[10px] font-semibold uppercase tracking-[0.3em] text-white shadow-[0_16px_34px_rgba(15,23,42,0.24)] transition hover:-translate-y-0.5 hover:bg-slate-800 active:scale-95"
@@ -228,6 +321,112 @@ const Dashboard = ({ showToast }: DashboardProps) => {
                     </div>
                   </div>
                 ))}
+          </div>
+        </section>
+      )}
+
+      {/* Availability Management (For Doctors) */}
+      {role === "doctor" && (
+        <section className="space-y-5">
+          <div className="flex items-center justify-between">
+            <h3 className="text-lg font-semibold text-slate-900">
+              Availability
+            </h3>
+            <button
+              onClick={handleSaveAvailability}
+              className="rounded-full bg-slate-900 px-4 py-2 text-[10px] font-semibold uppercase tracking-[0.28em] text-white shadow-[0_14px_30px_rgba(15,23,42,0.22)] transition hover:-translate-y-0.5 hover:bg-slate-800"
+            >
+              Save Changes
+            </button>
+          </div>
+
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+            <div className="rounded-[2rem] border border-white/70 bg-white/70 p-6 shadow-[0_18px_40px_rgba(15,23,42,0.1)] backdrop-blur-xl">
+              <p className="text-[9px] font-semibold uppercase tracking-[0.35em] text-slate-400">
+                Weekly Hours
+              </p>
+              <div className="mt-4 space-y-3">
+                {availability.weeklyHours.map((slot, index) => (
+                  <div
+                    key={slot.day}
+                    className="flex items-center justify-between gap-3"
+                  >
+                    <div className="flex items-center gap-3">
+                      <input
+                        type="checkbox"
+                        checked={slot.enabled}
+                        onChange={(e) =>
+                          handleWeeklyChange(
+                            index,
+                            "enabled",
+                            e.target.checked,
+                          )
+                        }
+                      />
+                      <span className="text-xs font-semibold text-slate-700">
+                        {slot.day}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="time"
+                        value={slot.start}
+                        onChange={(e) =>
+                          handleWeeklyChange(index, "start", e.target.value)
+                        }
+                        className="rounded-lg border border-white/70 bg-white/70 px-2 py-1 text-xs text-slate-700"
+                      />
+                      <span className="text-xs text-slate-400">to</span>
+                      <input
+                        type="time"
+                        value={slot.end}
+                        onChange={(e) =>
+                          handleWeeklyChange(index, "end", e.target.value)
+                        }
+                        className="rounded-lg border border-white/70 bg-white/70 px-2 py-1 text-xs text-slate-700"
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="rounded-[2rem] border border-white/70 bg-white/70 p-6 shadow-[0_18px_40px_rgba(15,23,42,0.1)] backdrop-blur-xl">
+              <p className="text-[9px] font-semibold uppercase tracking-[0.35em] text-slate-400">
+                Blocked Dates
+              </p>
+              <div className="mt-4 flex items-center gap-3">
+                <input
+                  type="date"
+                  value={newBlockedDate}
+                  onChange={(e) => setNewBlockedDate(e.target.value)}
+                  className="w-full rounded-xl border border-white/70 bg-white/70 px-3 py-2 text-xs text-slate-700"
+                />
+                <button
+                  onClick={handleAddBlockedDate}
+                  className="rounded-full border border-cyan-200/70 bg-cyan-50/80 px-4 py-2 text-[10px] font-semibold uppercase tracking-[0.28em] text-cyan-700 transition hover:bg-cyan-600 hover:text-white"
+                >
+                  Add
+                </button>
+              </div>
+
+              <div className="mt-4 flex flex-wrap gap-2">
+                {availability.blockedDates.length === 0 && (
+                  <span className="text-xs text-slate-400">
+                    No blocked dates yet.
+                  </span>
+                )}
+                {availability.blockedDates.map((date) => (
+                  <button
+                    key={date}
+                    onClick={() => handleRemoveBlockedDate(date)}
+                    className="rounded-full border border-slate-200/70 bg-white/70 px-3 py-1 text-[9px] font-semibold uppercase tracking-[0.28em] text-slate-600 hover:border-rose-200 hover:text-rose-600"
+                  >
+                    {date} x
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>
         </section>
       )}
@@ -313,12 +512,20 @@ const Dashboard = ({ showToast }: DashboardProps) => {
                       </span>
                     </td>
                     <td className="px-8 py-5 text-right">
-                      <button
-                        onClick={() => handleCancel(apt._id)}
-                        className="rounded-full border border-rose-200/70 bg-rose-50/80 px-3 py-1.5 text-[9px] font-semibold uppercase tracking-[0.28em] text-rose-600 transition hover:bg-rose-600 hover:text-white"
-                      >
-                        Cancel
-                      </button>
+                      <div className="flex items-center justify-end gap-2">
+                        <button
+                          onClick={() => handleReschedule(apt._id)}
+                          className="rounded-full border border-cyan-200/70 bg-cyan-50/80 px-3 py-1.5 text-[9px] font-semibold uppercase tracking-[0.28em] text-cyan-700 transition hover:bg-cyan-600 hover:text-white"
+                        >
+                          Reschedule
+                        </button>
+                        <button
+                          onClick={() => handleCancel(apt._id)}
+                          className="rounded-full border border-rose-200/70 bg-rose-50/80 px-3 py-1.5 text-[9px] font-semibold uppercase tracking-[0.28em] text-rose-600 transition hover:bg-rose-600 hover:text-white"
+                        >
+                          Cancel
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))

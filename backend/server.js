@@ -21,7 +21,12 @@ const {
   bookAppointment,
   getAppointments,
   cancelAppointment,
+  rescheduleAppointment,
 } = require("./controllers/aptController");
+const {
+  getAvailability,
+  updateAvailability,
+} = require("./controllers/availabilityController");
 
 // AUTH ROUTES - Updated to include /auth prefix to match your api.js
 app.post("/api/auth/register", register);
@@ -32,6 +37,11 @@ app.get("/api/auth/users", getUsers);
 app.post("/api/appointments/book", bookAppointment);
 app.get("/api/appointments", getAppointments);
 app.delete("/api/appointments/cancel/:id", cancelAppointment);
+app.patch("/api/appointments/reschedule/:id", rescheduleAppointment);
+
+// Doctor availability
+app.get("/api/doctors/:id/availability", getAvailability);
+app.patch("/api/doctors/:id/availability", updateAvailability);
 
 // Database Connection
 mongoose

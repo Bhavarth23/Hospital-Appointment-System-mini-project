@@ -27,5 +27,13 @@ export const bookAppointment = (data: ApiPayload) =>
 export const getAppointments = () => API.get("/appointments");
 export const cancelAppointment = (id: string) =>
   API.delete(`/appointments/cancel/${id}`);
+export const rescheduleAppointment = (id: string, data: ApiPayload) =>
+  API.patch(`/appointments/reschedule/${id}`, data);
+
+// Doctor availability
+export const getDoctorAvailability = (id: string) =>
+  API.get(`/doctors/${id}/availability`);
+export const updateDoctorAvailability = (id: string, data: ApiPayload) =>
+  API.patch(`/doctors/${id}/availability`, data);
 
 export default API;

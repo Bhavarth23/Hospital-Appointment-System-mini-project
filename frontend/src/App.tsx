@@ -10,6 +10,9 @@ import {
 import Register from "./pages/Register";
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
+import Home from "./pages/Home";
+import Appointments from "./pages/Appointments";
+import Settings from "./pages/Settings";
 import Toast from "./components/Toast";
 
 type ToastType = "success" | "error";
@@ -80,7 +83,7 @@ function App() {
         )}
 
         {/* Glass Navbar */}
-        <nav className="sticky top-0 z-50 border-b border-white/50 bg-white/60 backdrop-blur-2xl">
+        <nav className="sticky top-0 z-50 border-b border-slate-900/10 bg-slate-950/80 backdrop-blur-2xl">
           <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
             <div className="flex items-center gap-3">
               <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-cyan-600 via-sky-600 to-teal-600 text-white shadow-[0_10px_24px_rgba(2,132,199,0.26)]">
@@ -101,7 +104,7 @@ function App() {
               </div>
               <Link
                 to="/"
-                className="text-lg font-semibold tracking-tight text-slate-900"
+                className="text-lg font-semibold tracking-tight text-white"
               >
                 HealthLink
               </Link>
@@ -112,36 +115,48 @@ function App() {
                 <div className="flex items-center gap-3">
                   <Link
                     to="/login"
-                    className="rounded-full px-3 py-1.5 text-xs font-semibold text-slate-600 transition hover:text-slate-900"
+                    className="rounded-full px-3 py-1.5 text-xs font-semibold text-slate-200 transition hover:text-white"
                   >
                     Sign In
                   </Link>
                   <Link
                     to="/register"
-                    className="rounded-full bg-slate-900 px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.2em] text-white shadow-[0_10px_24px_rgba(15,23,42,0.25)] transition hover:-translate-y-0.5 hover:bg-slate-800"
+                    className="rounded-full bg-white/90 px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.2em] text-slate-900 shadow-[0_10px_24px_rgba(15,23,42,0.25)] transition hover:-translate-y-0.5 hover:bg-slate-800"
                   >
                     Get Started
                   </Link>
                 </div>
               ) : (
                 <div className="flex items-center gap-5">
-                  <div className="hidden sm:flex flex-col items-end leading-none border-r border-white/50 pr-5">
+                  <div className="hidden sm:flex flex-col items-end leading-none border-r border-white/15 pr-5">
                     <span className="text-[9px] uppercase tracking-[0.35em] text-slate-400 font-semibold mb-1">
                       Session
                     </span>
-                    <span className="text-xs font-semibold text-slate-700">
+                    <span className="text-xs font-semibold text-white">
                       {userName}
                     </span>
                   </div>
                   <Link
                     to="/dashboard"
-                    className="text-xs font-semibold text-slate-600 transition hover:text-slate-900"
+                    className="text-xs font-semibold text-slate-200 transition hover:text-white"
                   >
                     Dashboard
                   </Link>
+                  <Link
+                    to="/appointments"
+                    className="text-xs font-semibold text-slate-200 transition hover:text-white"
+                  >
+                    Appointments
+                  </Link>
+                  <Link
+                    to="/settings"
+                    className="text-xs font-semibold text-slate-200 transition hover:text-white"
+                  >
+                    Settings
+                  </Link>
                   <button
                     onClick={handleLogout}
-                    className="group flex items-center gap-2 rounded-full border border-rose-200/70 bg-rose-50/80 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.28em] text-rose-600 transition hover:bg-rose-600 hover:text-white"
+                    className="group flex items-center gap-2 rounded-full border border-rose-500/30 bg-rose-500/10 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.28em] text-rose-200 transition hover:bg-rose-600 hover:text-white"
                   >
                     Logout
                     <span className="text-xs transition-transform group-hover:translate-x-1">
@@ -157,6 +172,7 @@ function App() {
         {/* Global Page Transition Wrapper */}
         <main className="relative mx-auto max-w-7xl px-6 py-10 animate-in fade-in slide-in-from-bottom-4 duration-700">
           <Routes>
+            <Route path="/home" element={<Home />} />
             <Route
               path="/register"
               element={
@@ -188,23 +204,92 @@ function App() {
               }
             />
             <Route
-              path="/"
+              path="/appointments"
               element={
                 isLoggedIn ? (
-                  <Navigate to="/dashboard" />
+                  <Appointments showToast={showToast} />
                 ) : (
                   <Navigate to="/login" />
                 )
               }
             />
+            <Route
+              path="/settings"
+              element={
+                isLoggedIn ? (
+                  <Settings
+                    userName={userName}
+                    setUserName={setUserName}
+                    showToast={showToast}
+                  />
+                ) : (
+                  <Navigate to="/login" />
+                )
+              }
+            />
+            <Route
+              path="/"
+              element={isLoggedIn ? <Navigate to="/dashboard" /> : <Home />}
+            />
           </Routes>
         </main>
 
         {/* Footer */}
-        <footer className="relative border-t border-white/50 py-8 text-center">
-          <p className="text-[9px] font-semibold uppercase tracking-[0.4em] text-slate-400">
-            (c) 2026 HealthLink Portal
-          </p>
+        <footer className="relative border-t border-slate-900/10 bg-slate-950/90 py-10">
+          <div className="mx-auto grid max-w-7xl gap-6 px-6 text-xs text-slate-300 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="space-y-3">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.35em] text-slate-400">
+                HealthLink
+              </p>
+              <p className="text-xs font-medium text-slate-500">
+                A modern portal for appointments, patient flow, and doctor
+                availability management.
+              </p>
+            </div>
+
+            <div className="space-y-3">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.35em] text-slate-400">
+                Platform
+              </p>
+              <div className="flex flex-col gap-2">
+                <Link to="/dashboard" className="hover:text-white">
+                  Dashboard
+                </Link>
+                <Link to="/appointments" className="hover:text-white">
+                  Appointments
+                </Link>
+                <Link to="/settings" className="hover:text-white">
+                  Settings
+                </Link>
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.35em] text-slate-400">
+                Support
+              </p>
+              <div className="flex flex-col gap-2">
+                <span>help@healthlink.com</span>
+                <span>+1 (555) 010-2026</span>
+                <span>Mon-Fri · 9:00-18:00</span>
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.35em] text-slate-400">
+                Compliance
+              </p>
+              <div className="flex flex-col gap-2">
+                <span>Privacy Policy</span>
+                <span>Terms of Service</span>
+                <span>Security Practices</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="mx-auto mt-8 flex max-w-7xl flex-col items-start justify-between gap-3 px-6 text-[10px] font-semibold uppercase tracking-[0.35em] text-slate-400 sm:flex-row sm:items-center">
+            <span>(c) 2026 HealthLink Portal</span>
+          </div>
         </footer>
       </div>
     </Router>
@@ -212,3 +297,4 @@ function App() {
 }
 
 export default App;
+

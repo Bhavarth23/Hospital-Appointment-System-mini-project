@@ -35,3 +35,31 @@ exports.cancelAppointment = async (req, res) => {
     res.status(400).json({ success: false, error: err.message });
   }
 };
+
+// Reschedule Appointment
+exports.rescheduleAppointment = async (req, res) => {
+  try {
+    const { appointmentDate } = req.body;
+    if (!appointmentDate) {
+      return res
+        .status(400)
+        .json({ success: false, error: "New appointment date is required" });
+    }
+
+    const appointment = await Appointment.findByIdAndUpdate(
+      req.params.id,
+      { appointmentDate },
+      { new: true },
+    )
+      .populate("doctor", "name specialization")
+      .populate("patient", "name");
+
+    if (!appointment) {
+      return res.status(404).json({ message: "Appointment not found" });
+    }
+
+    res.status(200).json({ success: true, data: appointment });
+  } catch (err) {
+    res.status(400).json({ success: false, error: err.message });
+  }
+};
